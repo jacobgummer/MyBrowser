@@ -1,7 +1,12 @@
 import ssl
 import socket
+import tkinter
 
+# Constants
 sockets = {}
+WIDTH, HEIGHT = 800, 600
+HSTEP, VSTEP = 13, 18
+SCROLL_STEP = 100
 
 class URL:
     def __init__(self, url) -> None:
@@ -27,6 +32,7 @@ class URL:
         if ':' in self.host:
             self.host, port = self.host.split(':', 1)
             self.port = int(port)
+        
             
     def request(self) -> str:
         if self.scheme == "file":
@@ -83,7 +89,65 @@ class URL:
         s.close()
         
         return content
+    
+class Browser:
+    def __init__(self) -> None:
+        self.window = tkinter.Tk()
+        self.canvas = tkinter.Canvas(
+            self.window,
+            width=WIDTH,
+            height=HEIGHT
+        )
+        self.canvas.pack()
+        self.scroll = 0
+        self.window.bind("<Down>", self.scrolldown)
+        
+    def load(self, url: URL) -> None:
+        body = url.request()
+        text = lex(body)
+        self.display_list = layout(text)
+        self.draw()        
+    
+    def scrolldown(self, e):
+        self.scroll += SCROLL_STEP
+        self.draw()
+        
+    def draw(self) -> None:
+        self.canvas.delete("all")
+        
+        for x, y, c in self.display_list:
+            if y > self.scroll + HEIGHT: continue
+            if y + VSTEP < self.scroll: continue
+            self.canvas.create_text(x, y - self.scroll, text=c)
+            
 
+def layout(text: str) -> list:
+    display_list = []
+    cursor_x, cursor_y = HSTEP, VSTEP
+    for c in text:
+        display_list.append((cursor_x, cursor_y, c))
+        cursor_x += HSTEP
+        if cursor_x >= WIDTH - HSTEP:
+            cursor_y += VSTEP
+            cursor_x = HSTEP
+    return display_list
+        
+def lex(body: str):
+    text = ""
+    in_tag = False
+    for c in body:
+        if c == '<':
+            in_tag = True
+        elif c == '>':
+            in_tag = False
+        elif not in_tag:
+            if c == "&lt":
+                c = '<'
+            elif c == "&gt":
+                c = '>'
+            text += c
+    return text
+    
 
 def show(body: str, view_source: bool) -> None:
     if not view_source:
@@ -102,10 +166,6 @@ def show(body: str, view_source: bool) -> None:
     else:
         print(body)        
     
-def load(url: URL) -> None:
-    body = url.request()
-    show(body, url.view_source)
-    
 if __name__ == "__main__":
     import sys
     arg = '' 
@@ -113,4 +173,5 @@ if __name__ == "__main__":
         arg = "file:///Users/jacobsiegumfeldt/Desktop/Andet/Mine projekter/browser/example.txt"
     else:
         arg = sys.argv[1]
-    load(URL(arg))
+    Browser().load(URL(arg))
+    tkinter.mainloop()
