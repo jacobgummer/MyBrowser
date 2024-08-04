@@ -101,6 +101,23 @@ class Browser:
         self.canvas.pack()
         self.scroll = 0
         self.window.bind("<Down>", self.scrolldown)
+        self.window.bind("<Up>", self.scrollup)
+        self.window.bind("<MouseWheel>", self.on_mousewheel)
+        
+    # def on_mousewheel(self, e: tkinter.Event):
+    #     if self.scroll - e.delta < 0:
+    #         self.scroll = 0
+    #     else:
+    #         self.canvas.yview_scroll(-e.delta, "units")
+    #         self.scroll -= e.delta
+    #     self.draw()
+        
+    def scrollup(self, e):
+        if self.scroll - SCROLL_STEP < 0:
+            self.scroll = 0
+        else:
+            self.scroll -= SCROLL_STEP
+        self.draw()
         
     def load(self, url: URL) -> None:
         body = url.request()
