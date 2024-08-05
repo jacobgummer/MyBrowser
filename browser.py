@@ -105,10 +105,14 @@ class Browser:
         self.window.bind("<MouseWheel>", self.on_mousewheel)
         
     def on_mousewheel(self, e: tkinter.Event):
-        if self.scroll - 2 * e.delta < 0:
+        max_y = self.display_list[-1][1]
+        delta = e.delta
+        if delta > 0 and self.scroll - 2 * delta < 0:
             self.scroll = 0
+        elif delta < 0 and self.scroll + 2 * delta > max_y - HEIGHT:
+            self.scroll = max_y - HEIGHT
         else:
-            self.scroll -= 2 * e.delta
+            self.scroll -= 2 * delta
         self.draw()
         
     def scrollup(self, e: tkinter.Event):
