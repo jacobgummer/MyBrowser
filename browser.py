@@ -112,7 +112,7 @@ class Browser:
     #         self.scroll -= e.delta
     #     self.draw()
         
-    def scrollup(self, e):
+    def scrollup(self, e: tkinter.Event):
         if self.scroll - SCROLL_STEP < 0:
             self.scroll = 0
         else:
@@ -125,7 +125,7 @@ class Browser:
         self.display_list = layout(text)
         self.draw()        
     
-    def scrolldown(self, e):
+    def scrolldown(self, e: tkinter.Event):
         self.scroll += SCROLL_STEP
         self.draw()
         
