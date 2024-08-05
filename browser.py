@@ -102,15 +102,14 @@ class Browser:
         self.scroll = 0
         self.window.bind("<Down>", self.scrolldown)
         self.window.bind("<Up>", self.scrollup)
-        # self.window.bind("<MouseWheel>", self.on_mousewheel)
+        self.window.bind("<MouseWheel>", self.on_mousewheel)
         
-    # def on_mousewheel(self, e: tkinter.Event):
-    #     if self.scroll - e.delta < 0:
-    #         self.scroll = 0
-    #     else:
-    #         self.canvas.yview_scroll(-e.delta, "units")
-    #         self.scroll -= e.delta
-    #     self.draw()
+    def on_mousewheel(self, e: tkinter.Event):
+        if self.scroll - 2 * e.delta < 0:
+            self.scroll = 0
+        else:
+            self.scroll -= 2 * e.delta
+        self.draw()
         
     def scrollup(self, e: tkinter.Event):
         if self.scroll - SCROLL_STEP < 0:
@@ -142,6 +141,9 @@ def layout(text: str) -> list:
     display_list = []
     cursor_x, cursor_y = HSTEP, VSTEP
     for c in text:
+        if c == "\n":
+            cursor_y += VSTEP + 3
+            cursor_x = HSTEP
         display_list.append((cursor_x, cursor_y, c))
         cursor_x += HSTEP
         if cursor_x >= WIDTH - HSTEP:
