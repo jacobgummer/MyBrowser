@@ -102,7 +102,7 @@ class Browser:
         self.scroll = 0
         self.window.bind("<Down>", self.scrolldown)
         self.window.bind("<Up>", self.scrollup)
-        self.window.bind("<MouseWheel>", self.on_mousewheel)
+        # self.window.bind("<MouseWheel>", self.on_mousewheel)
         
     # def on_mousewheel(self, e: tkinter.Event):
     #     if self.scroll - e.delta < 0:
