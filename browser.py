@@ -1,9 +1,11 @@
 import ssl
 import socket
 import tkinter
+import tkinter.font
 
 # Constants
-sockets = {}
+SOCKETS = {}
+FONTS = {}
 WIDTH, HEIGHT = 800, 600
 HSTEP, VSTEP = 13, 18
 SCROLL_STEP = 100
@@ -46,7 +48,7 @@ class URL:
                     content = f.read()
             return content
             
-        s = sockets.get((self.host, self.port))
+        s = SOCKETS.get((self.host, self.port))
         if not s:
             s = socket.socket(
                 family=socket.AF_INET,
@@ -82,7 +84,7 @@ class URL:
         content_length = response_headers.get("Content-Length")
         if content_length:
             content = response.read(int(content_length))
-            sockets[(self.host, self.port)] = s        
+            SOCKETS[(self.host, self.port)] = s        
             return content
         
         content = response.read()
@@ -124,9 +126,9 @@ class Browser:
         
     def load(self, url: URL) -> None:
         body = url.request()
-        text = lex(body)
-        self.display_list = layout(text)
-        self.draw()        
+        tokens = lex(body)
+        self.display_list = Layout(tokens).display_list
+        self.draw()     
     
     def scrolldown(self, e: tkinter.Event):
         self.scroll += SCROLL_STEP
@@ -135,42 +137,100 @@ class Browser:
     def draw(self) -> None:
         self.canvas.delete("all")
         
-        for x, y, c in self.display_list:
+        for x, y, w, f in self.display_list:
             if y > self.scroll + HEIGHT: continue
             if y + VSTEP < self.scroll: continue
-            self.canvas.create_text(x, y - self.scroll, text=c)
+            self.canvas.create_text(x, y - self.scroll, text=w, font=f, anchor="nw")
             
-
-def layout(text: str) -> list:
-    display_list = []
-    cursor_x, cursor_y = HSTEP, VSTEP
-    for c in text:
-        if c == "\n":
-            cursor_y += VSTEP + 3
-            cursor_x = HSTEP
-        display_list.append((cursor_x, cursor_y, c))
-        cursor_x += HSTEP
-        if cursor_x >= WIDTH - HSTEP:
-            cursor_y += VSTEP
-            cursor_x = HSTEP
-    return display_list
+class Text:
+    def __init__(self, text: str) -> None:
+        self.text = text
         
-def lex(body: str):
-    text = ""
+class Tag:
+    def __init__(self, tag: str) -> None:
+        self.tag = tag
+
+class Layout:
+    def __init__(self, tokens) -> None:
+        self.display_list = []
+        self.line = []
+        self.cursor_x = HSTEP
+        self.cursor_y = VSTEP
+        self.weight = "normal"
+        self.style = "roman"
+        self.size = 12
+        for tok in tokens:
+            self.token(tok)
+        self.flush()
+
+    def flush(self) -> None:
+        if not self.line: return
+        metrics = [font.metrics() for _, _, font in self.line]
+        max_ascent = max([metric["ascent"] for metric in metrics])
+        baseline = self.cursor_y + 1.25 * max_ascent
+        
+        for x, word, font in self.line:
+            y = baseline - font.metrics("ascent")
+            self.display_list.append((x, y, word, font))
+        
+        max_descent = max([metric["descent"] for metric in metrics])
+        self.cursor_y = baseline + 1.25 * max_descent
+        
+        self.cursor_x = HSTEP
+        self.line = []
+        
+    def token(self, tok) -> list:
+        if isinstance(tok, Text):
+            for word in tok.text.split():
+                self.word(word)
+        elif tok.tag == 'i':
+            self.style = "italic"
+        elif tok.tag == "/i":
+            self.style = "roman"
+        elif tok.tag == 'b':
+            self.weight = "bold"
+        elif tok.tag == "/b":
+            self.weight = "normal"
+        elif tok.tag == "small":
+            self.size -= 2
+        elif tok.tag == "/small":
+            self.size += 2
+        elif tok.tag == "big":
+            self.size += 4
+        elif tok.tag == "/big":
+            self.size -= 4
+        elif tok.tag == "br":
+            self.flush()
+        elif tok.tag == "/p":
+            self.flush()
+            self.cursor_y += VSTEP
+        
+    def word(self, word: str) -> None:
+        font = get_font(self.size, self.weight, self.style)
+        w = font.measure(word)
+        self.line.append((self.cursor_x, word, font))   
+        self.cursor_x += w + font.measure(" ")
+        if self.cursor_x + w > WIDTH - HSTEP:
+            self.flush()
+
+def lex(body: str) -> list:
+    out = []
+    buffer = ""
     in_tag = False
     for c in body:
         if c == '<':
             in_tag = True
+            if buffer: out.append(Text(buffer))
+            buffer = ""
         elif c == '>':
             in_tag = False
-        elif not in_tag:
-            if c == "&lt":
-                c = '<'
-            elif c == "&gt":
-                c = '>'
-            text += c
-    return text
-    
+            out.append(Tag(buffer))
+            buffer = ""
+        else:
+            buffer += c
+    if not in_tag and buffer:
+        out.append(Text(buffer))
+    return out
 
 def show(body: str, view_source: bool) -> None:
     if not view_source:
@@ -181,19 +241,24 @@ def show(body: str, view_source: bool) -> None:
             elif c == '>':
                 in_tag = False
             elif not in_tag:
-                if c == "&lt":
-                    c = '<'
-                elif c == "&gt":
-                    c = '>'
                 print(c, end='')
     else:
         print(body)        
+        
+def get_font(size: int, weight: str, style: str) -> tkinter.font.Font:
+    key = (size, weight, style)
+    if key not in FONTS:
+        font = tkinter.font.Font(size=size, weight=weight,
+            slant=style)
+        label = tkinter.Label(font=font)
+        FONTS[key] = (font, label)
+    return FONTS[key][0]
     
 if __name__ == "__main__":
     import sys
     arg = '' 
     if len(sys.argv) < 2:
-        arg = "file:///Users/jacobsiegumfeldt/Desktop/Andet/Mine projekter/browser/example.txt"
+        arg = "file:///Users/jacobsiegumfeldt/Desktop/Andet/Mine projekter/browser/example.html"
     else:
         arg = sys.argv[1]
     Browser().load(URL(arg))
