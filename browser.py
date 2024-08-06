@@ -106,7 +106,7 @@ class Browser:
         self.window.bind("<Up>", self.scrollup)
         self.window.bind("<MouseWheel>", self.on_mousewheel)
         
-    def on_mousewheel(self, e: tkinter.Event):
+    def on_mousewheel(self, e: tkinter.Event) -> None:
         max_y = self.display_list[-1][1]
         delta = e.delta
         if delta > 0 and self.scroll - 2 * delta < 0:
@@ -117,7 +117,7 @@ class Browser:
             self.scroll -= 2 * delta
         self.draw()
         
-    def scrollup(self, e: tkinter.Event):
+    def scrollup(self, e: tkinter.Event) -> None:
         if self.scroll - SCROLL_STEP < 0:
             self.scroll = 0
         else:
@@ -130,7 +130,7 @@ class Browser:
         self.display_list = Layout(tokens).display_list
         self.draw()     
     
-    def scrolldown(self, e: tkinter.Event):
+    def scrolldown(self, e: tkinter.Event) -> None:
         self.scroll += SCROLL_STEP
         self.draw()
         
@@ -179,7 +179,7 @@ class Layout:
         self.cursor_x = HSTEP
         self.line = []
         
-    def token(self, tok) -> list:
+    def token(self, tok: Tag | Text) -> None:
         if isinstance(tok, Text):
             for word in tok.text.split():
                 self.word(word)
