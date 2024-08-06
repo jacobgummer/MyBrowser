@@ -208,10 +208,10 @@ class Layout:
     def word(self, word: str) -> None:
         font = get_font(self.size, self.weight, self.style)
         w = font.measure(word)
-        self.line.append((self.cursor_x, word, font))   
-        self.cursor_x += w + font.measure(" ")
         if self.cursor_x + w > WIDTH - HSTEP:
             self.flush()
+        self.line.append((self.cursor_x, word, font))   
+        self.cursor_x += w + font.measure(" ")
 
 def lex(body: str) -> list:
     out = []
